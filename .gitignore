@@ -1,0 +1,12 @@
+# dependencies
+node_modules/
+
+# build output
+out/
+dist/
+build/icon.iconset/
+
+# local / editor / os
+.claude/
+.DS_Store
+*.log

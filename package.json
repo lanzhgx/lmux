@@ -1,0 +1,44 @@
+{
+  "name": "lanni",
+  "version": "0.1.0",
+  "description": "A tmux/SSH-backed GUI terminal multiplexer",
+  "main": "out/main/index.js",
+  "author": "lan.zhang",
+  "license": "MIT",
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "preview": "electron-vite preview",
+    "rebuild": "DEVELOPER_DIR=/Library/Developer/CommandLineTools electron-rebuild -f -w node-pty",
+    "postinstall": "DEVELOPER_DIR=/Library/Developer/CommandLineTools electron-rebuild -f -w node-pty",
+    "typecheck": "tsc --noEmit",
+    "package": "electron-vite build && DEVELOPER_DIR=/Library/Developer/CommandLineTools electron-builder",
+    "package:dir": "electron-vite build && DEVELOPER_DIR=/Library/Developer/CommandLineTools electron-builder --dir"
+  },
+  "dependencies": {
+    "@xterm/addon-fit": "^0.10.0",
+    "@xterm/addon-search": "^0.15.0",
+    "@xterm/addon-unicode11": "^0.8.0",
+    "@xterm/addon-web-links": "^0.11.0",
+    "@xterm/addon-webgl": "^0.18.0",
+    "@xterm/xterm": "^5.5.0",
+    "allotment": "^1.20.5",
+    "electron-window-state": "^5.0.3",
+    "node-pty": "^1.0.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "zustand": "^4.5.5"
+  },
+  "devDependencies": {
+    "@electron/rebuild": "^3.6.0",
+    "@types/node": "^20.14.0",
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.3.0",
+    "electron": "^31.3.0",
+    "electron-builder": "^24.13.3",
+    "electron-vite": "^2.3.0",
+    "typescript": "^5.5.0",
+    "vite": "^5.4.0"
+  }
+}

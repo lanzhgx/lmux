@@ -1,0 +1,21 @@
+appId: com.lanzhang.lmux
+productName: lmux
+# node-pty is already rebuilt for Electron's ABI by our postinstall; don't let
+# electron-builder re-trigger node-gyp (it would hit the clang-15 toolchain trap).
+npmRebuild: false
+directories:
+  output: dist
+  buildResources: build
+files:
+  - out/**/*
+  - package.json
+# Native module must live outside the asar archive to be loadable at runtime.
+asarUnpack:
+  - '**/node_modules/node-pty/**'
+mac:
+  icon: build/icon.icns
+  target:
+    - dmg
+  category: public.app-category.developer-tools
+  # Personal/unsigned build: skip code signing (first launch needs a right-click > Open).
+  identity: null
