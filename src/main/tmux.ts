@@ -38,12 +38,18 @@ export function tmuxAttachScript(session: string, cwd?: string, startup?: string
   // Run the startup command IN the project dir: `cd <dir> && <startup>` (or just one).
   const full = start ? (cdCmd ? `${cdCmd} && ${start}` : start) : cdCmd
   const startupLine = full ? `tmux send-keys -t ${s} ${shq(full)} Enter; ` : ''
+  // Enable mouse for THIS session (not -g) so touchpad scroll works: TUIs like claude
+  // get the wheel and scroll their own view; plain shells scroll tmux's output history,
+  // instead of the wheel being turned into arrow keys (which scrolled command history).
+  const mouse = `tmux set-option -t ${s} mouse on >/dev/null 2>&1; `
   return (
     `if tmux has-session -t ${s} 2>/dev/null; then ` +
+    mouse +
     `exec tmux attach -d -t ${s}; ` +
     `else ` +
     `tmux new-session -d -s ${s}${startFlag}; ` +
     `tmux set-option -t ${s} status off >/dev/null 2>&1; ` +
+    mouse +
     startupLine +
     `exec tmux attach -d -t ${s}; ` +
     `fi`
