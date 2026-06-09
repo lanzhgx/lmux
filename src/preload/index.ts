@@ -23,6 +23,7 @@ const api: LanniApi = {
   listSshHosts: () => ipcRenderer.invoke(Ch.sshListHosts),
   probeSsh: (host: string) => ipcRenderer.invoke(Ch.sshProbe, host),
   openExternal: (url: string) => ipcRenderer.send(Ch.openExternal, url),
+  copyText: (text: string) => ipcRenderer.send(Ch.copyText, text),
   onMenuClosePane: (cb) => {
     const fn = (): void => cb()
     ipcRenderer.on(Ch.menuClosePane, fn)

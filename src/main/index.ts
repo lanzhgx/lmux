@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, Menu, shell, utilityProcess } from 'electron'
+import { app, BrowserWindow, clipboard, ipcMain, Menu, shell, utilityProcess } from 'electron'
 import { join } from 'node:path'
 import windowStateKeeper from 'electron-window-state'
 import { Ch } from '../shared/channels'
@@ -102,6 +102,9 @@ function registerIpc(): void {
   ipcMain.handle(Ch.sshProbe, (_e, host: string) => probeSsh(host, childEnv()))
   ipcMain.on(Ch.openExternal, (_e, url: string) => {
     if (/^https?:\/\//i.test(url)) shell.openExternal(url) // only open web links
+  })
+  ipcMain.on(Ch.copyText, (_e, text: string) => {
+    if (typeof text === 'string' && text) clipboard.writeText(text)
   })
 }
 

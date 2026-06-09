@@ -12,6 +12,7 @@ export const Ch = {
   sshListHosts: 'ssh:list-hosts',
   sshProbe: 'ssh:probe',
   openExternal: 'open-external',
+  copyText: 'clipboard:write',
   // main -> renderer
   ptyData: 'pty:data',
   ptyExit: 'pty:exit',

@@ -118,6 +118,8 @@ export function acquire(pane: PaneNode, connection: Connection): Entry {
     cursorBlink: true,
     allowProposedApi: true,
     scrollback: 10000,
+    // tmux mouse mode owns plain drags (for scroll); hold Option to drag-select locally.
+    macOptionClickForcesSelection: true,
     theme: THEMES[currentTheme]
   })
   const fit = new FitAddon()
@@ -219,6 +221,15 @@ export function acquire(pane: PaneNode, connection: Connection): Entry {
   }, 50)
   e.ro = new ResizeObserver(doFit)
   e.ro.observe(container)
+
+  // Copy-on-select: a local (Option-drag / keyboard) selection auto-copies to the
+  // system clipboard. tmux's own drag-selections don't fire this (they aren't xterm
+  // selections), so this only catches the local ones we want on the clipboard.
+  const copySelection = debounce(() => {
+    const sel = term.getSelection()
+    if (sel) window.lanni.copyText(sel)
+  }, 150)
+  term.onSelectionChange(copySelection)
 
   return e
 }

@@ -128,6 +128,8 @@ export interface LanniApi {
   listSshHosts(): Promise<string[]>
   probeSsh(host: string): Promise<SshProbeResult>
   openExternal(url: string): void
+  /** Write text to the system clipboard (copy-on-select). */
+  copyText(text: string): void
   /** Fired when the user presses ⌘W (close the focused pane). */
   onMenuClosePane(cb: () => void): () => void
 }
