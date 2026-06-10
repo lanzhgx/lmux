@@ -1,6 +1,6 @@
 {
   "name": "lanni",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A tmux/SSH-backed GUI terminal multiplexer",
   "main": "out/main/index.js",
   "author": "lan.zhang",
