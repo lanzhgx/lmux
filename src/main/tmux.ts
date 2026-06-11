@@ -45,13 +45,13 @@ export function tmuxAttachScript(session: string, cwd?: string, startup?: string
   return (
     `if tmux has-session -t ${s} 2>/dev/null; then ` +
     mouse +
-    `exec tmux attach -d -t ${s}; ` +
+    `exec tmux -u attach -d -t ${s}; ` +
     `else ` +
-    `tmux new-session -d -s ${s}${startFlag}; ` +
+    `tmux -u new-session -d -s ${s}${startFlag}; ` +
     `tmux set-option -t ${s} status off >/dev/null 2>&1; ` +
     mouse +
     startupLine +
-    `exec tmux attach -d -t ${s}; ` +
+    `exec tmux -u attach -d -t ${s}; ` +
     `fi`
   )
 }

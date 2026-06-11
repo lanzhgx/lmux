@@ -28,6 +28,15 @@ function childEnv(): Record<string, string> {
   // GUI-launched apps inherit a thin PATH; make sure Homebrew tmux is reachable.
   env.PATH = `/opt/homebrew/bin:/usr/local/bin:${env.PATH ?? ''}`
   env.TERM = 'xterm-256color'
+  // GUI-launched apps inherit no locale. Without a UTF-8 LC_CTYPE/LANG, tmux runs
+  // in non-UTF-8 mode and renders every non-ASCII glyph (accented letters,
+  // box-drawing, the markers/arrows CLIs like claude print) as a "_" placeholder.
+  // Ensure a UTF-8 locale so tmux and the programs it hosts emit/expect UTF-8.
+  const hasUtf8 = [env.LC_ALL, env.LC_CTYPE, env.LANG].some((v) => v && /utf-?8/i.test(v))
+  if (!hasUtf8) {
+    env.LANG = 'en_US.UTF-8'
+    env.LC_CTYPE = 'en_US.UTF-8'
+  }
   // Never let the spawned tmux think it is nested inside the app's own session.
   delete env.TMUX
   delete env.TMUX_PANE
