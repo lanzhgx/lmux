@@ -62,6 +62,8 @@ function isValidLayout(n: unknown): n is LayoutNode {
       SESSION_RE.test(node.tmuxSession) &&
       (node.cwd === undefined || typeof node.cwd === 'string') &&
       (node.startupCommand === undefined || typeof node.startupCommand === 'string') &&
+      (node.notes === undefined || typeof node.notes === 'string') &&
+      (node.notesOpen === undefined || typeof node.notesOpen === 'boolean') &&
       (node.isMain === undefined || typeof node.isMain === 'boolean')
     )
   }
@@ -147,6 +149,8 @@ interface Store {
   closePane: (wsId: string, tabId: string, paneId: string) => void
   setRatios: (wsId: string, tabId: string, path: number[], ratios: number[]) => void
   setPaneStartup: (wsId: string, tabId: string, paneId: string, startupCommand: string) => void
+  setPaneNotes: (wsId: string, tabId: string, paneId: string, notes: string) => void
+  togglePaneNotes: (wsId: string, tabId: string, paneId: string) => void
 }
 
 export const useStore = create<Store>((set, get) => {
@@ -365,6 +369,41 @@ export const useStore = create<Store>((set, get) => {
                 tabs: w.tabs.map((t) => (t.id !== tabId ? t : { ...t, layout: updatePane(t.layout, paneId, { startupCommand: cmd }) }))
               }
         )
+      }))
+      save()
+    },
+
+    setPaneNotes(wsId, tabId, paneId, notes) {
+      set((s) => ({
+        workspaces: s.workspaces.map((w) =>
+          w.id !== wsId
+            ? w
+            : {
+                ...w,
+                tabs: w.tabs.map((t) =>
+                  t.id !== tabId ? t : { ...t, layout: updatePane(t.layout, paneId, { notes: notes || undefined }) }
+                )
+              }
+        )
+      }))
+      // Sent immediately like other mutations; main debounces the disk write and
+      // flushes on quit, so fast typing can't lose the latest edit when the window closes.
+      save()
+    },
+
+    togglePaneNotes(wsId, tabId, paneId) {
+      set((s) => ({
+        workspaces: s.workspaces.map((w) => {
+          if (w.id !== wsId) return w
+          return {
+            ...w,
+            tabs: w.tabs.map((t) => {
+              if (t.id !== tabId) return t
+              const pane = collectPanes(t.layout).find((p) => p.id === paneId)
+              return { ...t, layout: updatePane(t.layout, paneId, { notesOpen: !pane?.notesOpen }) }
+            })
+          }
+        })
       }))
       save()
     }

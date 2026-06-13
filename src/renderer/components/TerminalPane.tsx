@@ -20,6 +20,8 @@ export function TerminalPane({
   const splitPane = useStore((s) => s.splitPane)
   const closePane = useStore((s) => s.closePane)
   const setPaneStartup = useStore((s) => s.setPaneStartup)
+  const setPaneNotes = useStore((s) => s.setPaneNotes)
+  const togglePaneNotes = useStore((s) => s.togglePaneNotes)
   const hostRef = useRef<HTMLDivElement>(null)
   const [, force] = useReducer((c: number) => c + 1, 0)
   const [findOpen, setFindOpen] = useState(false)
@@ -81,6 +83,13 @@ export function TerminalPane({
         <button title="Find (⌘F)" onClick={() => setFindOpen((v) => !v)}>
           ⌕
         </button>
+        <button
+          title="Notes panel"
+          className={pane.notesOpen ? 'on' : ''}
+          onClick={() => togglePaneNotes(wsId, tabId, pane.id)}
+        >
+          ✎
+        </button>
         <button title="Split right" onClick={() => splitPane(wsId, tabId, pane.id, 'horizontal')}>
           ⬌
         </button>
@@ -125,7 +134,25 @@ export function TerminalPane({
         </div>
       )}
 
-      <div className="term-host" ref={hostRef} />
+      <div className={pane.notesOpen ? 'term-host with-notes' : 'term-host'} ref={hostRef} />
+
+      {pane.notesOpen && (
+        <div className="pane-notes">
+          <div className="pane-notes-header">
+            <span>Notes</span>
+            <button title="Collapse notes" onClick={() => togglePaneNotes(wsId, tabId, pane.id)}>
+              ✕
+            </button>
+          </div>
+          <textarea
+            className="pane-notes-text"
+            value={pane.notes ?? ''}
+            placeholder="Scratchpad — type here while the terminal scrolls on its own."
+            spellCheck={false}
+            onChange={(e) => setPaneNotes(wsId, tabId, pane.id, e.target.value)}
+          />
+        </div>
+      )}
 
       {status.reconnectAttempt > 0 && (
         <div className="term-overlay">

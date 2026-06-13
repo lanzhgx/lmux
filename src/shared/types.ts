@@ -21,6 +21,10 @@ export interface PaneNode {
   cwd?: string
   /** Command to run on a FRESH session (e.g. `claude --continue`). '' = plain shell. */
   startupCommand?: string
+  /** Free-text scratchpad shown beside this pane (persisted, scrolls independently). */
+  notes?: string
+  /** Whether the scratchpad is expanded. Undefined/false = collapsed. */
+  notesOpen?: boolean
   /** The workspace's primary pane: holds the AI session and is protected on close. */
   isMain?: boolean
 }
