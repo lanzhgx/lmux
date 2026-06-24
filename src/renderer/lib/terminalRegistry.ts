@@ -5,7 +5,7 @@ import { WebglAddon } from '@xterm/addon-webgl'
 import { SearchAddon } from '@xterm/addon-search'
 import { WebLinksAddon } from '@xterm/addon-web-links'
 import type { Connection, PaneNode, Theme } from '../../shared/types'
-import { needsCodexCapture, resolveStartupCommand } from '../../shared/profiles'
+import { resolveStartupCommand } from '../../shared/profiles'
 import { debounce } from './debounce'
 
 const THEMES: Record<Theme, { background: string; foreground: string; cursor: string; cursorAccent: string; selectionBackground: string }> = {
@@ -92,16 +92,14 @@ function doConnect(paneId: string): void {
   e.connecting = true
   e.status = { connecting: true, disconnected: false, reconnectAttempt: e.status.reconnectAttempt }
   notify(e)
-  const isLocal = e.connection.kind === 'local'
   window.lanni.createPane({
     ptyId: paneId,
     tmuxSession: e.pane.tmuxSession,
     connection: e.connection,
     cwd: e.pane.cwd,
-    // Resolve the per-pane id-based resume command (local owned panes only); ssh /
-    // legacy / shell panes pass through unchanged.
-    startupCommand: resolveStartupCommand(e.pane, isLocal),
-    captureCodexId: needsCodexCapture(e.pane, isLocal),
+    // Resolve the per-pane id-based resume command (claude/codex with an id); shell /
+    // custom / not-yet-assigned panes pass through unchanged. Works for ssh too.
+    startupCommand: resolveStartupCommand(e.pane),
     cols: term.cols,
     rows: term.rows
   })

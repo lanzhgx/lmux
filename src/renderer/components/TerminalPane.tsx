@@ -1,8 +1,9 @@
 import { useEffect, useReducer, useRef, useState } from 'react'
 import type { Connection, PaneNode } from '../../shared/types'
-import { PROFILE_COMMANDS, profileOf, type ProfileKey } from '../../shared/profiles'
 import { useStore } from '../store'
 import * as registry from '../lib/terminalRegistry'
+import { SessionTypeDialog } from './SessionTypeDialog'
+import { RestorePopover } from './RestorePopover'
 
 export function TerminalPane({
   pane,
@@ -19,7 +20,6 @@ export function TerminalPane({
 }): JSX.Element {
   const splitPane = useStore((s) => s.splitPane)
   const closePane = useStore((s) => s.closePane)
-  const setPaneStartup = useStore((s) => s.setPaneStartup)
   const setPaneNotes = useStore((s) => s.setPaneNotes)
   const togglePaneNotes = useStore((s) => s.togglePaneNotes)
   const hostRef = useRef<HTMLDivElement>(null)
@@ -27,6 +27,8 @@ export function TerminalPane({
   const [findOpen, setFindOpen] = useState(false)
   const [findTerm, setFindTerm] = useState('')
   const findInputRef = useRef<HTMLInputElement>(null)
+  // While set, the session-type chooser asks what the new (split) pane should run.
+  const [pendingSplit, setPendingSplit] = useState<'horizontal' | 'vertical' | null>(null)
 
   // Mount the pane's persistent terminal DOM into our host. The terminal itself
   // (xterm + ssh/tmux connection) lives in the registry and survives this component
@@ -64,22 +66,6 @@ export function TerminalPane({
   return (
     <div className="term-wrap">
       <div className="pane-toolbar">
-        <select
-          className="pane-profile"
-          title="Run on connect (auto-resumes after reboot)"
-          value={profileOf(pane.startupCommand)}
-          onClick={(e) => e.stopPropagation()}
-          onChange={(e) => {
-            const key = e.target.value as ProfileKey | 'custom'
-            if (key === 'custom') return
-            setPaneStartup(wsId, tabId, pane.id, PROFILE_COMMANDS[key])
-          }}
-        >
-          <option value="shell">sh</option>
-          <option value="claude">claude</option>
-          <option value="codex">codex</option>
-          {profileOf(pane.startupCommand) === 'custom' && <option value="custom">custom</option>}
-        </select>
         <button title="Find (⌘F)" onClick={() => setFindOpen((v) => !v)}>
           ⌕
         </button>
@@ -90,10 +76,11 @@ export function TerminalPane({
         >
           ✎
         </button>
-        <button title="Split right" onClick={() => splitPane(wsId, tabId, pane.id, 'horizontal')}>
+        <RestorePopover pane={pane} wsId={wsId} tabId={tabId} />
+        <button title="Split right" onClick={() => setPendingSplit('horizontal')}>
           ⬌
         </button>
-        <button title="Split down" onClick={() => splitPane(wsId, tabId, pane.id, 'vertical')}>
+        <button title="Split down" onClick={() => setPendingSplit('vertical')}>
           ⬍
         </button>
         <button
@@ -133,6 +120,16 @@ export function TerminalPane({
           </button>
         </div>
       )}
+
+      <SessionTypeDialog
+        open={pendingSplit !== null}
+        title="New pane"
+        onClose={() => setPendingSplit(null)}
+        onChoose={(startup) => {
+          if (pendingSplit) splitPane(wsId, tabId, pane.id, pendingSplit, startup || undefined)
+          setPendingSplit(null)
+        }}
+      />
 
       <div className={pane.notesOpen ? 'term-host with-notes' : 'term-host'} ref={hostRef} />
 

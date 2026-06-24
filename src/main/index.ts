@@ -6,7 +6,6 @@ import type { Connection, HostOutbound, PersistedState, PtyCreateRequest, PtySpa
 import { checkTmux, killLocalSession, localTmuxCommand } from './tmux'
 import { killRemoteSession, listSshHosts, probeSsh, sshTmuxCommand } from './ssh'
 import { flushState, loadState, saveStateDebounced } from './store'
-import { armCodexCapture } from './codexCapture'
 
 // Whitelists enforced at the spawn boundary — workspace.json is user-editable, so
 // these values are treated as untrusted even though the app generates them cleanly.
@@ -87,13 +86,6 @@ function registerIpc(): void {
     }
     ptyMeta.set(req.ptyId, { connection: req.connection, tmuxSession: req.tmuxSession })
     ptyHost?.postMessage({ type: 'create', ...buildSpawnSpec(req) })
-    // LOCAL codex pane with no id yet: watch ~/.codex/sessions for the session it
-    // creates and report the captured id back so it can be resumed by id next time.
-    if (req.connection.kind !== 'ssh' && req.captureCodexId) {
-      armCodexCapture(req.cwd, Date.now(), (sessionId) => {
-        mainWindow?.webContents.send(Ch.codexSessionCaptured, req.ptyId, sessionId)
-      })
-    }
     return true
   })
   ipcMain.on(Ch.ptyInput, (_e, ptyId: string, data: string) =>

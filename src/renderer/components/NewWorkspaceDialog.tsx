@@ -133,12 +133,12 @@ export function NewWorkspaceDialog({
         </label>
 
         <label className="field">
-          <span>Run on connect (auto-resumes after a reboot)</span>
+          <span>Start session with</span>
           <select value={profile} onChange={(e) => setProfile(e.target.value as ProfileKey | 'custom')}>
-            <option value="shell">Shell</option>
-            <option value="claude">Claude — claude --continue</option>
-            <option value="codex">Codex — codex resume --last</option>
-            <option value="custom">Custom…</option>
+            <option value="shell">Terminal (plain shell)</option>
+            <option value="claude">Claude (new session)</option>
+            <option value="codex">Codex (new session)</option>
+            <option value="custom">Custom command…</option>
           </select>
         </label>
         {profile === 'custom' && (

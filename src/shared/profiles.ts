@@ -5,7 +5,9 @@
 export const PROFILE_COMMANDS = {
   shell: '',
   claude: 'claude --continue',
-  codex: 'codex resume --last'
+  // A new codex pane starts a fresh session; paste its id into the pane's id field to
+  // make it restorable. Legacy panes created earlier may carry `codex resume --last`.
+  codex: 'codex'
 } as const
 
 export type ProfileKey = keyof typeof PROFILE_COMMANDS
@@ -14,7 +16,7 @@ export type ProfileKey = keyof typeof PROFILE_COMMANDS
 export function profileOf(cmd?: string): ProfileKey | 'custom' {
   if (!cmd || !cmd.trim()) return 'shell'
   if (cmd === PROFILE_COMMANDS.claude) return 'claude'
-  if (cmd === PROFILE_COMMANDS.codex) return 'codex'
+  if (cmd === PROFILE_COMMANDS.codex || cmd === 'codex resume --last') return 'codex'
   return 'custom'
 }
 
@@ -26,47 +28,29 @@ interface PaneSession {
   startupCommand?: string
   claudeSessionId?: string
   codexSessionId?: string
-  codexOwned?: boolean
 }
 
 /**
- * Resolve the actual command run on a FRESH session from a pane's profile + ids.
- * LOCAL panes that own an AI session resume their OWN conversation by id; everything
- * else (ssh, shell, custom, and legacy panes with no id) is returned unchanged so
- * existing `claude --continue` / `codex resume --last` behaviour is preserved.
+ * Resolve the command run on a FRESH session from a pane's profile + its session id.
+ * When the pane has an id for its tool it resumes THAT conversation by id (works local
+ * AND ssh, since the command runs wherever the pane does). With no id it falls back to
+ * the plain stored command, so shell / custom / not-yet-assigned panes are unchanged.
  */
-export function resolveStartupCommand(pane: PaneSession, isLocal: boolean): string {
+export function resolveStartupCommand(pane: PaneSession): string {
   const cmd = pane.startupCommand || ''
-  if (!isLocal) return cmd
   const profile = profileOf(cmd)
   if (profile === 'claude' && pane.claudeSessionId && UUID_RE.test(pane.claudeSessionId)) {
     const u = pane.claudeSessionId
-    // Resume our conversation if it exists (glob is encoding-independent and unique
-    // because the id is lmux-minted); otherwise create it with that id. On the next
-    // reconnect --resume succeeds. Avoids claude's "id already in use" error.
-    // Wrapped in `sh -c` so the glob is evaluated by POSIX sh, NOT the interactive
-    // shell: zsh would print "no matches found" on first run and bash `nullglob`
-    // would wrongly take the resume branch. sh does neither.
+    // Resume our conversation if its transcript exists; otherwise create it with that
+    // id. On the next reconnect --resume succeeds, avoiding claude's "id already in
+    // use" error. Wrapped in `sh -c` so the glob is POSIX-evaluated (zsh would print
+    // "no matches found" and bash `nullglob` would wrongly take the resume branch).
     return `sh -c 'if ls "$HOME"/.claude/projects/*/${u}.jsonl >/dev/null 2>&1; then claude --resume ${u}; else claude --session-id ${u}; fi'`
   }
-  if (profile === 'codex' && pane.codexOwned) {
-    if (pane.codexSessionId && UUID_RE.test(pane.codexSessionId)) {
-      // Resume this pane's captured session; if it's gone, start fresh (NOT
-      // `resume --last`, which could adopt another pane's session). Braces keep the
-      // `||` from binding to a preceding `cd` if that ever fails.
-      return `{ codex resume ${pane.codexSessionId} || codex; }`
-    }
-    return 'codex' // first run: bare codex; main captures the auto-generated id
+  if (profile === 'codex' && pane.codexSessionId && UUID_RE.test(pane.codexSessionId)) {
+    // Resume this pane's pasted session; if it's gone, start fresh. Braces keep the
+    // `||` from binding to a preceding `cd` if that ever fails.
+    return `{ codex resume ${pane.codexSessionId} || codex; }`
   }
   return cmd
-}
-
-/** True when a LOCAL codex pane is owned but hasn't captured its session id yet. */
-export function needsCodexCapture(pane: PaneSession, isLocal: boolean): boolean {
-  return (
-    isLocal &&
-    profileOf(pane.startupCommand) === 'codex' &&
-    !!pane.codexOwned &&
-    !(pane.codexSessionId && UUID_RE.test(pane.codexSessionId))
-  )
 }

@@ -22,16 +22,15 @@ export interface PaneNode {
   /** Command to run on a FRESH session (e.g. `claude --continue`). '' = plain shell. */
   startupCommand?: string
   /**
-   * LOCAL-only per-pane AI session restore (so multiple claude/codex sessions in one
-   * directory each resume their OWN conversation, not just the latest).
-   * - claudeSessionId: a UUID lmux MINTS for a claude pane (claude --session-id / --resume).
-   * - codexOwned + codexSessionId: codex can't be told an id, so lmux marks the pane
-   *   (codexOwned) and CAPTURES codex's auto-generated id after it starts.
-   * Absent on legacy/ssh/shell panes, which keep `claude --continue` / `codex resume --last`.
+   * Per-pane AI session id for restore-by-id, shown/edited in the pane's id popover.
+   * Each pane resumes its OWN conversation (claude --resume / codex resume <id>) instead
+   * of the latest-in-dir. Works for local AND ssh (the resume runs wherever the pane does).
+   * - claudeSessionId: a UUID lmux mints for a claude pane (claude --session-id then --resume).
+   * - codexSessionId: codex can't be told an id, so the user pastes the one codex generated.
+   * Empty on shell panes and on AI panes not yet given an id (those keep their plain command).
    */
   claudeSessionId?: string
   codexSessionId?: string
-  codexOwned?: boolean
   /** Free-text scratchpad shown beside this pane (persisted, scrolls independently). */
   notes?: string
   /** Whether the scratchpad is expanded. Undefined/false = collapsed. */
@@ -93,8 +92,6 @@ export interface PtyCreateRequest {
   connection: Connection
   cwd?: string
   startupCommand?: string
-  /** LOCAL codex pane with no captured id yet: main watches ~/.codex/sessions to capture it. */
-  captureCodexId?: boolean
   cols: number
   rows: number
 }
@@ -149,6 +146,4 @@ export interface LanniApi {
   copyText(text: string): void
   /** Fired when the user presses ⌘W (close the focused pane). */
   onMenuClosePane(cb: () => void): () => void
-  /** Main captured a codex session id for a pane (so it can be resumed by id later). */
-  onCodexSessionCaptured(cb: (paneId: string, sessionId: string) => void): () => void
 }

@@ -28,11 +28,6 @@ const api: LanniApi = {
     const fn = (): void => cb()
     ipcRenderer.on(Ch.menuClosePane, fn)
     return () => ipcRenderer.removeListener(Ch.menuClosePane, fn)
-  },
-  onCodexSessionCaptured: (cb) => {
-    const fn = (_e: unknown, paneId: string, sessionId: string): void => cb(paneId, sessionId)
-    ipcRenderer.on(Ch.codexSessionCaptured, fn)
-    return () => ipcRenderer.removeListener(Ch.codexSessionCaptured, fn)
   }
 }
 

@@ -315,26 +315,19 @@ body {
 .term-wrap:hover .pane-toolbar {
   opacity: 1;
 }
-.pane-toolbar button,
-.pane-profile {
+.pane-toolbar button {
   background: var(--toolbar-btn);
   border: 1px solid var(--border-strong);
   color: var(--text);
   height: 20px;
+  width: 22px;
   border-radius: 4px;
   font-size: 11px;
   line-height: 1;
   cursor: pointer;
-}
-.pane-toolbar button {
-  width: 22px;
   display: flex;
   align-items: center;
   justify-content: center;
-}
-.pane-profile {
-  font-size: 10px;
-  padding: 0 2px;
 }
 .pane-toolbar button:hover {
   background: var(--accent);
@@ -586,4 +579,134 @@ button.ghost {
 button.ghost:disabled {
   opacity: 0.45;
   cursor: default;
+}
+
+/* Session-type chooser (split / new tab) */
+.split-choices {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.split-choice {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-align: left;
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  padding: 10px 12px;
+  cursor: pointer;
+  color: var(--text);
+}
+.split-choice:hover {
+  background: var(--surface-hover);
+  border-color: var(--accent);
+}
+.split-choice strong {
+  font-size: 13px;
+}
+.split-choice span {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+.custom-row {
+  display: flex;
+  gap: 6px;
+}
+.custom-row input {
+  flex: 1 1 auto;
+  min-width: 0;
+  background: var(--input-bg);
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+  color: var(--text);
+  font-size: 13px;
+  padding: 6px 8px;
+  outline: none;
+}
+
+/* Per-pane restore popover (session id / custom command) */
+.popover-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 7;
+}
+.restore-popover {
+  position: absolute;
+  top: 26px;
+  right: 0;
+  width: 320px;
+  z-index: 8;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  padding: 10px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+}
+.restore-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text);
+}
+.restore-input {
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+  background: var(--input-bg);
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+  color: var(--text);
+  font-family: Menlo, Monaco, 'SF Mono', monospace;
+  font-size: 12px;
+  padding: 6px 8px;
+  outline: none;
+}
+.restore-hint {
+  font-size: 11px;
+  color: var(--text-dim);
+  line-height: 1.45;
+}
+.restore-hint code {
+  display: block;
+  margin-top: 4px;
+  padding: 5px 6px;
+  background: var(--input-bg);
+  border-radius: 4px;
+  font-size: 10.5px;
+  white-space: pre-wrap;
+  word-break: break-all;
+  user-select: all;
+}
+.restore-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* type selector inside the restore popover */
+.restore-types {
+  display: flex;
+  gap: 4px;
+}
+.restore-type {
+  flex: 1 1 0;
+  background: var(--surface-hover);
+  border: 1px solid var(--border-strong);
+  color: var(--text);
+  border-radius: 4px;
+  padding: 4px 0;
+  font-size: 11px;
+  cursor: pointer;
+}
+.restore-type:hover {
+  border-color: var(--accent);
+}
+.restore-type.on {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
 }

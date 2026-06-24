@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { Workspace } from '../../shared/types'
 import { useStore } from '../store'
 import { collectPanes } from '../lib/layoutTree'
+import { SessionTypeDialog } from './SessionTypeDialog'
 
 export function TabBar({ workspace }: { workspace: Workspace }): JSX.Element {
   const setActiveTab = useStore((s) => s.setActiveTab)
@@ -10,6 +11,7 @@ export function TabBar({ workspace }: { workspace: Workspace }): JSX.Element {
   const renameTab = useStore((s) => s.renameTab)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [draft, setDraft] = useState('')
+  const [pendingNew, setPendingNew] = useState(false)
 
   const commit = (): void => {
     if (editingId && draft.trim()) renameTab(workspace.id, editingId, draft.trim())
@@ -71,9 +73,18 @@ export function TabBar({ workspace }: { workspace: Workspace }): JSX.Element {
           </div>
         )
       })}
-      <button className="tab-add" title="New tab" onClick={() => addTab(workspace.id)}>
+      <button className="tab-add" title="New tab" onClick={() => setPendingNew(true)}>
         +
       </button>
+      <SessionTypeDialog
+        open={pendingNew}
+        title="New tab"
+        onClose={() => setPendingNew(false)}
+        onChoose={(startup) => {
+          addTab(workspace.id, startup || undefined)
+          setPendingNew(false)
+        }}
+      />
     </div>
   )
 }
