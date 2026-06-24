@@ -1,6 +1,7 @@
 import { create } from 'zustand'
-import type { Connection, PaneNode, PersistedState, Tab, Theme, Workspace } from '../shared/types'
-import { genId, sessionName } from '../shared/ids'
+import type { Connection, ConnectionKind, PaneNode, PersistedState, Tab, Theme, Workspace } from '../shared/types'
+import { genId, genUuid, sessionName } from '../shared/ids'
+import { profileOf } from '../shared/profiles'
 import {
   collectPanes,
   removePaneFromTree,
@@ -11,9 +12,28 @@ import {
 import { destroy as destroyTerminal } from './lib/terminalRegistry'
 import type { LayoutNode, SplitNode } from '../shared/types'
 
-const STATE_VERSION = 1
+const STATE_VERSION = 2
 
-function makePane(wsId: string, tabId: string, startup?: string, initialCwd?: string, isMain?: boolean): PaneNode {
+// For a NEW local pane, give it an lmux-owned AI session so it restores its own
+// conversation by id: mint a UUID for claude (claude --session-id/--resume); just mark
+// codex as owned (codex assigns its own id, captured after start). Non-local panes and
+// shell/custom panes get nothing and keep `claude --continue` / `codex resume --last`.
+function ownedSessionFields(startup: string | undefined, kind?: ConnectionKind): Partial<PaneNode> {
+  if (kind !== 'local' || !startup) return {}
+  const prof = profileOf(startup)
+  if (prof === 'claude') return { claudeSessionId: genUuid() }
+  if (prof === 'codex') return { codexOwned: true }
+  return {}
+}
+
+function makePane(
+  wsId: string,
+  tabId: string,
+  startup?: string,
+  initialCwd?: string,
+  isMain?: boolean,
+  kind?: ConnectionKind
+): PaneNode {
   const id = genId('p')
   return {
     type: 'pane',
@@ -21,17 +41,25 @@ function makePane(wsId: string, tabId: string, startup?: string, initialCwd?: st
     tmuxSession: sessionName(wsId, tabId, id),
     startupCommand: startup || undefined,
     cwd: initialCwd || undefined,
-    isMain: isMain || undefined
+    isMain: isMain || undefined,
+    ...ownedSessionFields(startup, kind)
   }
 }
-function makeTab(wsId: string, title: string, startup?: string, initialCwd?: string, isMain?: boolean): Tab {
+function makeTab(
+  wsId: string,
+  title: string,
+  startup?: string,
+  initialCwd?: string,
+  isMain?: boolean,
+  kind?: ConnectionKind
+): Tab {
   const id = genId('t')
-  return { id, title, layout: makePane(wsId, id, startup, initialCwd, isMain) }
+  return { id, title, layout: makePane(wsId, id, startup, initialCwd, isMain, kind) }
 }
 function makeWorkspace(name: string, connection: Connection, defaultStartup?: string, directory?: string): Workspace {
   const id = genId('w')
   // The initial pane is the workspace's MAIN pane: it gets the AI command + isMain.
-  const tab = makeTab(id, 'shell', defaultStartup, directory, true)
+  const tab = makeTab(id, 'shell', defaultStartup, directory, true, connection.kind)
   return {
     id,
     name,
@@ -62,6 +90,9 @@ function isValidLayout(n: unknown): n is LayoutNode {
       SESSION_RE.test(node.tmuxSession) &&
       (node.cwd === undefined || typeof node.cwd === 'string') &&
       (node.startupCommand === undefined || typeof node.startupCommand === 'string') &&
+      (node.claudeSessionId === undefined || typeof node.claudeSessionId === 'string') &&
+      (node.codexSessionId === undefined || typeof node.codexSessionId === 'string') &&
+      (node.codexOwned === undefined || typeof node.codexOwned === 'boolean') &&
       (node.notes === undefined || typeof node.notes === 'string') &&
       (node.notesOpen === undefined || typeof node.notesOpen === 'boolean') &&
       (node.isMain === undefined || typeof node.isMain === 'boolean')
@@ -149,6 +180,7 @@ interface Store {
   closePane: (wsId: string, tabId: string, paneId: string) => void
   setRatios: (wsId: string, tabId: string, path: number[], ratios: number[]) => void
   setPaneStartup: (wsId: string, tabId: string, paneId: string, startupCommand: string) => void
+  setCodexSessionId: (paneId: string, sessionId: string) => void
   setPaneNotes: (wsId: string, tabId: string, paneId: string, notes: string) => void
   togglePaneNotes: (wsId: string, tabId: string, paneId: string) => void
 }
@@ -361,14 +393,43 @@ export const useStore = create<Store>((set, get) => {
     setPaneStartup(wsId, tabId, paneId, startupCommand) {
       const cmd = startupCommand || undefined
       set((s) => ({
-        workspaces: s.workspaces.map((w) =>
-          w.id !== wsId
-            ? w
-            : {
-                ...w,
-                tabs: w.tabs.map((t) => (t.id !== tabId ? t : { ...t, layout: updatePane(t.layout, paneId, { startupCommand: cmd }) }))
+        workspaces: s.workspaces.map((w) => {
+          if (w.id !== wsId) return w
+          const isLocal = w.connection.kind === 'local'
+          return {
+            ...w,
+            tabs: w.tabs.map((t) => {
+              if (t.id !== tabId) return t
+              const pane = collectPanes(t.layout).find((p) => p.id === paneId)
+              const prev = profileOf(pane?.startupCommand)
+              const next = profileOf(cmd)
+              const patch: Partial<PaneNode> = { startupCommand: cmd }
+              // Give the pane an owned session only on a real switch INTO claude/codex
+              // (local). Re-selecting the same profile is a no-op, so a legacy pane that
+              // already runs `claude --continue` keeps its conversation rather than
+              // being abandoned for a fresh minted id.
+              if (isLocal && next !== prev) {
+                if (next === 'claude' && !pane?.claudeSessionId) patch.claudeSessionId = genUuid()
+                if (next === 'codex' && !pane?.codexOwned) patch.codexOwned = true
               }
-        )
+              return { ...t, layout: updatePane(t.layout, paneId, patch) }
+            })
+          }
+        })
+      }))
+      save()
+    },
+
+    setCodexSessionId(paneId, sessionId) {
+      set((s) => ({
+        workspaces: s.workspaces.map((w) => ({
+          ...w,
+          tabs: w.tabs.map((t) =>
+            collectPanes(t.layout).some((p) => p.id === paneId)
+              ? { ...t, layout: updatePane(t.layout, paneId, { codexSessionId: sessionId }) }
+              : t
+          )
+        }))
       }))
       save()
     },

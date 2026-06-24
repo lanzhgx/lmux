@@ -68,6 +68,14 @@ export function App(): JSX.Element {
     })
   }, [])
 
+  // Persist the codex session id main captured for a local codex pane, so it resumes
+  // its own conversation by id on the next reconnect.
+  useEffect(() => {
+    return window.lanni.onCodexSessionCaptured((paneId, sessionId) => {
+      useStore.getState().setCodexSessionId(paneId, sessionId)
+    })
+  }, [])
+
   if (!loaded) return <div className="loading">Loading…</div>
 
   const activeWs = workspaces.find((w) => w.id === activeWorkspaceId) ?? workspaces[0]

@@ -16,5 +16,6 @@ export const Ch = {
   // main -> renderer
   ptyData: 'pty:data',
   ptyExit: 'pty:exit',
-  menuClosePane: 'menu:close-pane'
+  menuClosePane: 'menu:close-pane',
+  codexSessionCaptured: 'pty:codex-session-captured'
 } as const
